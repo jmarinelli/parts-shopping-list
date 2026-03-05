@@ -1,59 +1,99 @@
 import { Router, Request, Response } from 'express';
 import * as optionsService from '../services/options';
-import * as partsService from '../services/parts';
+import * as partGroupsService from '../services/part-groups';
 
 export const optionsRouter = Router();
 
 optionsRouter.get(
-  '/parts/:partId/options',
-  async (req: Request<{ partId: string }>, res: Response) => {
-    const part = await partsService.getPartById(req.params.partId);
-    if (!part) {
-      res.status(404).json({ error: { message: 'Part not found' } });
+  '/part-groups/:partGroupId/options',
+  async (req: Request<{ partGroupId: string }>, res: Response) => {
+    const group = await partGroupsService.getPartGroupById(
+      req.params.partGroupId,
+    );
+    if (!group) {
+      res
+        .status(404)
+        .json({ error: { message: 'Part group not found' } });
       return;
     }
-    const options = await optionsService.listOptionsByPartId(
-      req.params.partId,
+    const options = await optionsService.listOptionsByPartGroupId(
+      req.params.partGroupId,
     );
     res.json({ data: options });
   },
 );
 
 optionsRouter.post(
-  '/parts/:partId/options',
-  async (req: Request<{ partId: string }>, res: Response) => {
-    const { name, price, currency, source, link, comment } = req.body;
+  '/part-groups/:partGroupId/options',
+  async (req: Request<{ partGroupId: string }>, res: Response) => {
+    const { name, firstPart } = req.body;
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       res.status(400).json({
-        error: { message: 'Name is required and must be a non-empty string' },
+        error: { message: 'Name is required' },
       });
       return;
     }
-    if (price === undefined || price === null) {
+    if (!firstPart || typeof firstPart !== 'object') {
+      res.status(400).json({
+        error: { message: 'First part is required' },
+      });
+      return;
+    }
+    if (
+      !firstPart.name ||
+      typeof firstPart.name !== 'string' ||
+      firstPart.name.trim().length === 0
+    ) {
+      res.status(400).json({
+        error: { message: 'First part name is required' },
+      });
+      return;
+    }
+    if (firstPart.price === undefined || firstPart.price === null) {
+      res.status(400).json({
+        error: { message: 'First part price is required' },
+      });
+      return;
+    }
+    const price = Number(firstPart.price);
+    if (isNaN(price) || price < 0) {
+      res.status(400).json({
+        error: { message: 'First part price must be a valid number >= 0' },
+      });
+      return;
+    }
+    if (
+      !firstPart.currency ||
+      typeof firstPart.currency !== 'string'
+    ) {
+      res.status(400).json({
+        error: { message: 'First part currency is required' },
+      });
+      return;
+    }
+    const group = await partGroupsService.getPartGroupById(
+      req.params.partGroupId,
+    );
+    if (!group) {
       res
-        .status(400)
-        .json({ error: { message: 'Price is required' } });
+        .status(404)
+        .json({ error: { message: 'Part group not found' } });
       return;
     }
-    if (!currency || typeof currency !== 'string') {
-      res
-        .status(400)
-        .json({ error: { message: 'Currency is required' } });
-      return;
-    }
-    const part = await partsService.getPartById(req.params.partId);
-    if (!part) {
-      res.status(404).json({ error: { message: 'Part not found' } });
-      return;
-    }
-    const option = await optionsService.createOption(req.params.partId, {
-      name: name.trim(),
-      price: String(price),
-      currency: currency.trim(),
-      source: source ?? undefined,
-      link: link ?? undefined,
-      comment: comment ?? undefined,
-    });
+    const option = await optionsService.createOption(
+      req.params.partGroupId,
+      {
+        name: name.trim(),
+        firstPart: {
+          name: firstPart.name.trim(),
+          price,
+          currency: firstPart.currency.trim().toUpperCase(),
+          source: firstPart.source ?? undefined,
+          link: firstPart.link ?? undefined,
+          comment: firstPart.comment ?? undefined,
+        },
+      },
+    );
     res.status(201).json({ data: option });
   },
 );
@@ -73,7 +113,7 @@ optionsRouter.get(
 optionsRouter.put(
   '/options/:optionId',
   async (req: Request<{ optionId: string }>, res: Response) => {
-    const { name, price, currency, source, link, comment } = req.body;
+    const { name } = req.body;
     if (
       name !== undefined &&
       (typeof name !== 'string' || name.trim().length === 0)
@@ -83,17 +123,12 @@ optionsRouter.put(
       });
       return;
     }
-    const data: Record<string, unknown> = {};
+    const data: { name?: string } = {};
     if (name !== undefined) data.name = name.trim();
-    if (price !== undefined) data.price = String(price);
-    if (currency !== undefined) data.currency = currency;
-    if (source !== undefined) data.source = source;
-    if (link !== undefined) data.link = link;
-    if (comment !== undefined) data.comment = comment;
 
     const option = await optionsService.updateOption(
       req.params.optionId,
-      data as Parameters<typeof optionsService.updateOption>[1],
+      data,
     );
     if (!option) {
       res.status(404).json({ error: { message: 'Option not found' } });
@@ -116,11 +151,18 @@ optionsRouter.delete(
 );
 
 optionsRouter.patch(
-  '/parts/:partId/options/:optionId/select',
-  async (req: Request<{ partId: string; optionId: string }>, res: Response) => {
-    const part = await partsService.getPartById(req.params.partId);
-    if (!part) {
-      res.status(404).json({ error: { message: 'Part not found' } });
+  '/part-groups/:partGroupId/options/:optionId/select',
+  async (
+    req: Request<{ partGroupId: string; optionId: string }>,
+    res: Response,
+  ) => {
+    const group = await partGroupsService.getPartGroupById(
+      req.params.partGroupId,
+    );
+    if (!group) {
+      res
+        .status(404)
+        .json({ error: { message: 'Part group not found' } });
       return;
     }
     const option = await optionsService.getOptionById(req.params.optionId);
@@ -128,14 +170,14 @@ optionsRouter.patch(
       res.status(404).json({ error: { message: 'Option not found' } });
       return;
     }
-    if (option.partId !== req.params.partId) {
+    if (option.partGroupId !== req.params.partGroupId) {
       res.status(400).json({
-        error: { message: 'Option does not belong to this part' },
+        error: { message: 'Option does not belong to this part group' },
       });
       return;
     }
-    const updated = await partsService.selectOption(
-      req.params.partId,
+    const updated = await partGroupsService.selectOption(
+      req.params.partGroupId,
       req.params.optionId,
     );
     res.json({ data: updated });

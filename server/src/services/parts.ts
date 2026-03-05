@@ -1,104 +1,82 @@
-import { eq, count } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { parts } from '../db/schema/parts';
-import { options } from '../db/schema/options';
 
-export async function listPartsByProjectId(projectId: string) {
-  const rows = await db
-    .select({
-      id: parts.id,
-      projectId: parts.projectId,
-      name: parts.name,
-      status: parts.status,
-      isOptional: parts.isOptional,
-      sortOrder: parts.sortOrder,
-      selectedOptionId: parts.selectedOptionId,
-      createdAt: parts.createdAt,
-      updatedAt: parts.updatedAt,
-      selectedOptionName: options.name,
-      selectedOptionPrice: options.price,
-      selectedOptionCurrency: options.currency,
-    })
+const VALID_STATUSES = ['pending', 'ordered', 'owned'];
+
+export async function listPartsByOptionId(optionId: string) {
+  return db
+    .select()
     .from(parts)
-    .leftJoin(options, eq(parts.selectedOptionId, options.id))
-    .where(eq(parts.projectId, projectId))
-    .orderBy(parts.sortOrder);
-
-  return rows.map((row) => ({
-    id: row.id,
-    projectId: row.projectId,
-    name: row.name,
-    status: row.status,
-    isOptional: row.isOptional,
-    sortOrder: row.sortOrder,
-    selectedOptionId: row.selectedOptionId,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    selectedOption: row.selectedOptionId
-      ? {
-          id: row.selectedOptionId,
-          name: row.selectedOptionName,
-          price: row.selectedOptionPrice,
-          currency: row.selectedOptionCurrency,
-        }
-      : null,
-  }));
+    .where(eq(parts.optionId, optionId))
+    .orderBy(parts.createdAt);
 }
 
 export async function getPartById(id: string) {
-  const results = await db
-    .select()
-    .from(parts)
-    .where(eq(parts.id, id));
+  const results = await db.select().from(parts).where(eq(parts.id, id));
   return results[0] ?? null;
 }
 
-export async function getPartWithOptions(id: string) {
-  const part = await getPartById(id);
-  if (!part) return null;
-
-  const partOptions = await db
-    .select()
-    .from(options)
-    .where(eq(options.partId, id));
-
-  return { ...part, options: partOptions };
-}
-
 export async function createPart(
-  projectId: string,
-  data: { name: string; status?: string; isOptional?: boolean },
+  optionId: string,
+  data: {
+    name: string;
+    price: number;
+    currency: string;
+    source?: string;
+    link?: string;
+    comment?: string;
+  },
 ) {
-  const [maxOrderResult] = await db
-    .select({ value: count() })
-    .from(parts)
-    .where(eq(parts.projectId, projectId));
-
-  const sortOrder = maxOrderResult.value;
-
-  const results = await db
+  const [part] = await db
     .insert(parts)
     .values({
-      projectId,
+      optionId,
       name: data.name,
-      status: data.status ?? 'pending',
-      isOptional: data.isOptional ?? false,
-      sortOrder,
+      price: String(data.price),
+      currency: data.currency.toUpperCase(),
+      source: data.source ?? null,
+      link: data.link ?? null,
+      comment: data.comment ?? null,
     })
     .returning();
-  return results[0];
+
+  return part;
 }
 
 export async function updatePart(
   id: string,
-  data: { name?: string; status?: string; isOptional?: boolean },
+  data: {
+    name?: string;
+    price?: number;
+    currency?: string;
+    source?: string;
+    link?: string;
+    comment?: string;
+    status?: string;
+  },
 ) {
-  const results = await db
+  if (data.status && !VALID_STATUSES.includes(data.status)) {
+    return { validationError: 'Invalid status' };
+  }
+
+  const updateData: Record<string, unknown> = { updatedAt: new Date() };
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.price !== undefined) updateData.price = String(data.price);
+  if (data.currency !== undefined)
+    updateData.currency = data.currency.toUpperCase();
+  if (data.source !== undefined) updateData.source = data.source;
+  if (data.link !== undefined) updateData.link = data.link;
+  if (data.comment !== undefined) updateData.comment = data.comment;
+  if (data.status !== undefined) updateData.status = data.status;
+
+  const [updated] = await db
     .update(parts)
-    .set({ ...data, updatedAt: new Date() })
+    .set(updateData)
     .where(eq(parts.id, id))
     .returning();
-  return results[0] ?? null;
+
+  return updated ?? null;
 }
 
 export async function deletePart(id: string) {
@@ -106,24 +84,5 @@ export async function deletePart(id: string) {
     .delete(parts)
     .where(eq(parts.id, id))
     .returning({ id: parts.id });
-  return results[0] ?? null;
-}
-
-export async function reorderParts(projectId: string, orderedIds: string[]) {
-  for (let i = 0; i < orderedIds.length; i++) {
-    await db
-      .update(parts)
-      .set({ sortOrder: i, updatedAt: new Date() })
-      .where(eq(parts.id, orderedIds[i]));
-  }
-  return listPartsByProjectId(projectId);
-}
-
-export async function selectOption(partId: string, optionId: string) {
-  const results = await db
-    .update(parts)
-    .set({ selectedOptionId: optionId, updatedAt: new Date() })
-    .where(eq(parts.id, partId))
-    .returning();
   return results[0] ?? null;
 }

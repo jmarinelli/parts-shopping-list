@@ -2,118 +2,154 @@ import { eq, count } from 'drizzle-orm';
 import { db } from '../db';
 import { options } from '../db/schema/options';
 import { parts } from '../db/schema/parts';
+import { partGroups } from '../db/schema/part-groups';
 
-export async function listOptionsByPartId(partId: string) {
-  return db
+async function getOptionWithParts(optionId: string) {
+  const [option] = await db
     .select()
     .from(options)
-    .where(eq(options.partId, partId))
+    .where(eq(options.id, optionId));
+  if (!option) return null;
+
+  const optParts = await db
+    .select()
+    .from(parts)
+    .where(eq(parts.optionId, optionId));
+
+  return { ...option, parts: optParts };
+}
+
+export async function listOptionsByPartGroupId(partGroupId: string) {
+  const allOptions = await db
+    .select()
+    .from(options)
+    .where(eq(options.partGroupId, partGroupId))
     .orderBy(options.createdAt);
+
+  const result = [];
+  for (const opt of allOptions) {
+    const optParts = await db
+      .select()
+      .from(parts)
+      .where(eq(parts.optionId, opt.id));
+    result.push({ ...opt, parts: optParts });
+  }
+  return result;
 }
 
 export async function getOptionById(id: string) {
-  const results = await db
-    .select()
-    .from(options)
-    .where(eq(options.id, id));
-  return results[0] ?? null;
+  return getOptionWithParts(id);
 }
 
 export async function createOption(
-  partId: string,
+  partGroupId: string,
   data: {
     name: string;
-    price: string;
-    currency: string;
-    source?: string;
-    link?: string;
-    comment?: string;
+    firstPart: {
+      name: string;
+      price: number;
+      currency: string;
+      source?: string;
+      link?: string;
+      comment?: string;
+    };
   },
 ) {
-  const results = await db
-    .insert(options)
-    .values({
-      partId,
-      name: data.name,
-      price: data.price,
-      currency: data.currency,
-      source: data.source ?? null,
-      link: data.link ?? null,
-      comment: data.comment ?? null,
-    })
-    .returning();
+  return db.transaction(async (tx) => {
+    // 1. Insert option
+    const [option] = await tx
+      .insert(options)
+      .values({
+        partGroupId,
+        name: data.name,
+      })
+      .returning();
 
-  const option = results[0];
+    // 2. Insert first part
+    const [part] = await tx
+      .insert(parts)
+      .values({
+        optionId: option.id,
+        name: data.firstPart.name,
+        price: String(data.firstPart.price),
+        currency: data.firstPart.currency,
+        source: data.firstPart.source ?? null,
+        link: data.firstPart.link ?? null,
+        comment: data.firstPart.comment ?? null,
+      })
+      .returning();
 
-  // Auto-selection: if this is the only option, select it
-  const [countResult] = await db
-    .select({ value: count() })
-    .from(options)
-    .where(eq(options.partId, partId));
+    // 3. Auto-selection: if this is the only option, select it
+    const [countResult] = await tx
+      .select({ value: count() })
+      .from(options)
+      .where(eq(options.partGroupId, partGroupId));
 
-  if (countResult.value === 1) {
-    await db
-      .update(parts)
-      .set({ selectedOptionId: option.id, updatedAt: new Date() })
-      .where(eq(parts.id, partId));
-  }
+    if (countResult.value === 1) {
+      await tx
+        .update(partGroups)
+        .set({ selectedOptionId: option.id, updatedAt: new Date() })
+        .where(eq(partGroups.id, partGroupId));
+    }
 
-  return option;
+    return { ...option, parts: [part] };
+  });
 }
 
-export async function updateOption(
-  id: string,
-  data: {
-    name?: string;
-    price?: string;
-    currency?: string;
-    source?: string | null;
-    link?: string | null;
-    comment?: string | null;
-  },
-) {
-  const results = await db
+export async function updateOption(id: string, data: { name?: string }) {
+  const [updated] = await db
     .update(options)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(options.id, id))
     .returning();
-  return results[0] ?? null;
+
+  if (!updated) return null;
+
+  const optParts = await db
+    .select()
+    .from(parts)
+    .where(eq(parts.optionId, id));
+
+  return { ...updated, parts: optParts };
 }
 
 export async function deleteOption(id: string) {
-  const option = await getOptionById(id);
+  const [option] = await db
+    .select()
+    .from(options)
+    .where(eq(options.id, id));
   if (!option) return null;
 
-  const partId = option.partId;
+  const partGroupId = option.partGroupId;
 
   await db.delete(options).where(eq(options.id, id));
 
-  // Get the part to check if the deleted option was selected
-  const [part] = await db
+  // Get the part group to check if the deleted option was selected
+  const [group] = await db
     .select()
-    .from(parts)
-    .where(eq(parts.id, partId));
+    .from(partGroups)
+    .where(eq(partGroups.id, partGroupId));
 
-  if (part) {
+  if (group) {
     // If the deleted option was the selected one, clear selection
-    if (part.selectedOptionId === id) {
+    if (group.selectedOptionId === id) {
       await db
-        .update(parts)
+        .update(partGroups)
         .set({ selectedOptionId: null, updatedAt: new Date() })
-        .where(eq(parts.id, partId));
+        .where(eq(partGroups.id, partGroupId));
     }
 
     // Auto-selection: if exactly one option remains, select it
     const remaining = await db
       .select()
       .from(options)
-      .where(eq(options.partId, partId));
+      .where(eq(options.partGroupId, partGroupId));
 
     if (remaining.length === 1) {
       await db
-        .update(parts)
+        .update(partGroups)
         .set({ selectedOptionId: remaining[0].id, updatedAt: new Date() })
-        .where(eq(parts.id, partId));
+        .where(eq(partGroups.id, partGroupId));
     }
   }
 

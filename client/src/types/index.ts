@@ -13,28 +13,43 @@ export interface Project {
   updatedAt: string;
 }
 
-export interface Option {
+export interface Part {
   id: string;
-  partId: string;
+  optionId: string;
   name: string;
   price: number;
   currency: string;
   source: string | null;
   link: string | null;
   comment: string | null;
+  status: 'pending' | 'ordered' | 'owned';
   createdAt: string;
   updatedAt: string;
 }
 
-export interface Part {
+export interface Option {
+  id: string;
+  partGroupId: string;
+  name: string;
+  parts: Part[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PartGroup {
   id: string;
   projectId: string;
   name: string;
-  status: 'pending' | 'ordered' | 'owned';
   isOptional: boolean;
   sortOrder: number;
   selectedOptionId: string | null;
-  selectedOption: Option | null;
+  computedStatus: 'pending' | 'ordered' | 'owned' | null;
+  selectedOption: {
+    id: string;
+    name: string;
+    computedPrice: number | null;
+    currencies: string[];
+  } | null;
   createdAt: string;
   updatedAt: string;
 }

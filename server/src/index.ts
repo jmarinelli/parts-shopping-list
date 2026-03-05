@@ -4,8 +4,9 @@ import cors from 'cors';
 import { healthRouter } from './routes/health';
 import { carsRouter } from './routes/cars';
 import { projectsRouter } from './routes/projects';
-import { partsRouter } from './routes/parts';
+import { partGroupsRouter } from './routes/part-groups';
 import { optionsRouter } from './routes/options';
+import { partsRouter } from './routes/parts';
 import { exchangeRatesRouter } from './routes/exchange-rates';
 
 const app = express();
@@ -20,8 +21,9 @@ app.use(express.json());
 app.use('/api', healthRouter);
 app.use('/api', carsRouter);
 app.use('/api', projectsRouter);
-app.use('/api', partsRouter);
+app.use('/api', partGroupsRouter);
 app.use('/api', optionsRouter);
+app.use('/api', partsRouter);
 app.use('/api', exchangeRatesRouter);
 
 app.listen(port, () => {

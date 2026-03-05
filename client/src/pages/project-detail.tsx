@@ -4,12 +4,12 @@ import { GearSix } from '@phosphor-icons/react';
 import { useCar } from '@/hooks/use-cars';
 import { useProjects } from '@/hooks/use-projects';
 import {
-  useParts,
-  useCreatePart,
-  useUpdatePart,
-  useDeletePart,
-  useReorderParts,
-} from '@/hooks/use-parts';
+  usePartGroups,
+  useCreatePartGroup,
+  useUpdatePartGroup,
+  useDeletePartGroup,
+  useReorderPartGroups,
+} from '@/hooks/use-part-groups';
 import {
   useOptions,
   useCreateOption,
@@ -17,6 +17,11 @@ import {
   useDeleteOption,
   useSelectOption,
 } from '@/hooks/use-options';
+import {
+  useCreatePart,
+  useUpdatePart,
+  useDeletePart,
+} from '@/hooks/use-parts';
 import { useTotals } from '@/hooks/use-totals';
 import { ApiError } from '@/services/api';
 import { PartsList } from '@/components/parts-list';
@@ -24,20 +29,20 @@ import { OptionsPanel } from '@/components/options-panel';
 import { TotalsBanner } from '@/components/totals-banner';
 import { ExchangeRatesModal } from '@/components/exchange-rates-modal';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
-import type { Part } from '@/types';
+import type { PartGroup } from '@/types';
 
 export function ProjectDetailPage() {
   const { carId, projectId } = useParams<{ carId: string; projectId: string }>();
   const { data: car, isLoading: carLoading } = useCar(carId!);
   const { data: projects, isLoading: projectsLoading } = useProjects(carId!);
-  const { data: parts, isLoading: partsLoading } = useParts(projectId!);
+  const { data: partGroups, isLoading: partGroupsLoading } = usePartGroups(projectId!);
 
-  const createPart = useCreatePart();
-  const updatePart = useUpdatePart();
-  const deletePart = useDeletePart();
-  const reorderParts = useReorderParts();
+  const createPartGroup = useCreatePartGroup();
+  const updatePartGroup = useUpdatePartGroup();
+  const deletePartGroup = useDeletePartGroup();
+  const reorderPartGroups = useReorderPartGroups();
 
-  const [selectedPart, setSelectedPart] = useState<Part | null>(null);
+  const [selectedPartGroup, setSelectedPartGroup] = useState<PartGroup | null>(null);
   const [exchangeRatesOpen, setExchangeRatesOpen] = useState(false);
 
   // Fetch totals to get available currencies (React Query deduplicates with TotalsBanner's query)
@@ -47,21 +52,26 @@ export function ProjectDetailPage() {
       ? (totalsError.meta.availableCurrencies as string[]) ?? []
       : totals?.availableCurrencies ?? [];
 
-  // Options hooks — only fetch when a part is selected
+  // Options hooks — only fetch when a part group is selected
   const { data: options, isLoading: optionsLoading } = useOptions(
-    selectedPart?.id ?? '',
+    selectedPartGroup?.id ?? '',
   );
   const createOption = useCreateOption();
   const updateOption = useUpdateOption();
   const deleteOption = useDeleteOption();
   const selectOption = useSelectOption();
 
-  const project = projects?.find((p) => p.id === projectId);
-  const isLoading = carLoading || projectsLoading || partsLoading;
+  // Part (leaf entity) hooks
+  const createPart = useCreatePart();
+  const updatePart = useUpdatePart();
+  const deletePart = useDeletePart();
 
-  // Keep selectedPart in sync with fresh data
-  const freshSelectedPart = selectedPart
-    ? parts?.find((p) => p.id === selectedPart.id) ?? null
+  const project = projects?.find((p) => p.id === projectId);
+  const isLoading = carLoading || projectsLoading || partGroupsLoading;
+
+  // Keep selectedPartGroup in sync with fresh data
+  const freshSelectedPartGroup = selectedPartGroup
+    ? partGroups?.find((pg) => pg.id === selectedPartGroup.id) ?? null
     : null;
 
   if (isLoading) {
@@ -86,7 +96,7 @@ export function ProjectDetailPage() {
   return (
     <div
       className={`mx-auto max-w-7xl px-6 py-10 transition-[padding] duration-200 ${
-        freshSelectedPart ? 'lg:pr-[440px]' : ''
+        freshSelectedPartGroup ? 'lg:pr-[440px]' : ''
       }`}
     >
       <Breadcrumb
@@ -118,27 +128,20 @@ export function ProjectDetailPage() {
       />
 
       <PartsList
-        parts={parts ?? []}
-        selectedPartId={freshSelectedPart?.id ?? null}
-        onSelectPart={(part) => setSelectedPart(part)}
-        onCreatePart={(name) =>
-          createPart.mutate({ projectId: projectId!, name })
+        partGroups={partGroups ?? []}
+        selectedPartGroupId={freshSelectedPartGroup?.id ?? null}
+        onSelectPartGroup={(pg) => setSelectedPartGroup(pg)}
+        onCreatePartGroup={(name) =>
+          createPartGroup.mutate({ projectId: projectId!, name })
         }
-        onStatusChange={(partId, status) =>
-          updatePart.mutate({
-            id: partId,
-            projectId: projectId!,
-            data: { status },
-          })
-        }
-        onDeletePart={(partId) => {
-          if (selectedPart?.id === partId) setSelectedPart(null);
-          deletePart.mutate({ id: partId, projectId: projectId! });
+        onDeletePartGroup={(partGroupId) => {
+          if (selectedPartGroup?.id === partGroupId) setSelectedPartGroup(null);
+          deletePartGroup.mutate({ partGroupId, projectId: projectId! });
         }}
         onReorder={(orderedIds) =>
-          reorderParts.mutate({ projectId: projectId!, orderedIds })
+          reorderPartGroups.mutate({ projectId: projectId!, orderedIds })
         }
-        isCreating={createPart.isPending}
+        isCreating={createPartGroup.isPending}
       />
 
       <ExchangeRatesModal
@@ -149,50 +152,77 @@ export function ProjectDetailPage() {
       />
 
       {/* Side panel */}
-      {freshSelectedPart && (
+      {freshSelectedPartGroup && (
         <OptionsPanel
-          part={freshSelectedPart}
+          partGroup={freshSelectedPartGroup}
           options={options}
           isLoadingOptions={optionsLoading}
-          onClose={() => setSelectedPart(null)}
-          onUpdatePart={(data) =>
-            updatePart.mutate({
-              id: freshSelectedPart.id,
+          onClose={() => setSelectedPartGroup(null)}
+          onUpdatePartGroup={(data) =>
+            updatePartGroup.mutate({
+              partGroupId: freshSelectedPartGroup.id,
               projectId: projectId!,
-              data,
+              ...data,
             })
           }
           onCreateOption={(data) =>
             createOption.mutate({
-              partId: freshSelectedPart.id,
+              partGroupId: freshSelectedPartGroup.id,
               projectId: projectId!,
               ...data,
             })
           }
           onUpdateOption={(optionId, data) =>
             updateOption.mutate({
-              id: optionId,
-              partId: freshSelectedPart.id,
+              optionId,
+              partGroupId: freshSelectedPartGroup.id,
               projectId: projectId!,
-              data,
+              ...data,
             })
           }
           onDeleteOption={(optionId) =>
             deleteOption.mutate({
-              id: optionId,
-              partId: freshSelectedPart.id,
+              optionId,
+              partGroupId: freshSelectedPartGroup.id,
               projectId: projectId!,
             })
           }
           onSelectOption={(optionId) =>
             selectOption.mutate({
-              partId: freshSelectedPart.id,
+              partGroupId: freshSelectedPartGroup.id,
               optionId,
+              projectId: projectId!,
+            })
+          }
+          onCreatePart={(optionId, data) =>
+            createPart.mutate({
+              optionId,
+              partGroupId: freshSelectedPartGroup.id,
+              projectId: projectId!,
+              ...data,
+            })
+          }
+          onUpdatePart={(partId, optionId, data) =>
+            updatePart.mutate({
+              partId,
+              optionId,
+              partGroupId: freshSelectedPartGroup.id,
+              projectId: projectId!,
+              ...data,
+            })
+          }
+          onDeletePart={(partId, optionId) =>
+            deletePart.mutate({
+              partId,
+              optionId,
+              partGroupId: freshSelectedPartGroup.id,
               projectId: projectId!,
             })
           }
           isCreatingOption={createOption.isPending}
           isUpdatingOption={updateOption.isPending}
+          isCreatingPart={createPart.isPending}
+          isUpdatingPart={updatePart.isPending}
         />
       )}
     </div>

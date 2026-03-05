@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
-import { parts } from '../db/schema/parts';
+import { partGroups } from '../db/schema/part-groups';
 import { options } from '../db/schema/options';
+import { parts } from '../db/schema/parts';
 import { exchangeRates } from '../db/schema/exchange-rates';
 
 interface TotalsResult {
@@ -18,17 +19,36 @@ interface TotalsError {
   availableCurrencies: string[];
 }
 
+const STATUS_ORDER: Record<string, number> = {
+  pending: 0,
+  ordered: 1,
+  owned: 2,
+};
+
+function minStatus(statuses: string[]): 'pending' | 'ordered' | 'owned' {
+  let min = Infinity;
+  let minS = 'owned';
+  for (const s of statuses) {
+    const order = STATUS_ORDER[s] ?? 0;
+    if (order < min) {
+      min = order;
+      minS = s;
+    }
+  }
+  return minS as 'pending' | 'ordered' | 'owned';
+}
+
 export async function getAvailableCurrencies(
   projectId: string,
 ): Promise<string[]> {
-  const allOptions = await db
-    .select({ currency: options.currency })
-    .from(options)
-    .innerJoin(parts, eq(options.partId, parts.id))
-    .where(eq(parts.projectId, projectId));
+  const rows = await db
+    .selectDistinct({ currency: parts.currency })
+    .from(parts)
+    .innerJoin(options, eq(parts.optionId, options.id))
+    .innerJoin(partGroups, eq(options.partGroupId, partGroups.id))
+    .where(eq(partGroups.projectId, projectId));
 
-  const currencies = [...new Set(allOptions.map((o) => o.currency))].sort();
-  return currencies;
+  return rows.map((r) => r.currency).sort();
 }
 
 function findDirectRate(
@@ -56,11 +76,9 @@ function resolveRate(
   from: string,
   to: string,
 ): number | { missingPair: { from: string; to: string } } {
-  // Try direct/inverse lookup
   const direct = findDirectRate(rates, from, to);
   if (direct !== null) return direct;
 
-  // Try converting through USD as intermediary (from → USD → to)
   if (from !== 'USD' && to !== 'USD') {
     const fromToUsd = findDirectRate(rates, from, 'USD');
     const usdToTarget = findDirectRate(rates, 'USD', to);
@@ -69,7 +87,6 @@ function resolveRate(
       return fromToUsd * usdToTarget;
     }
 
-    // Report which USD pair is missing
     if (fromToUsd === null) {
       return { missingPair: { from: 'USD', to: from } };
     }
@@ -96,17 +113,10 @@ export async function calculateTotals(
     };
   }
 
-  const projectParts = await db
-    .select({
-      status: parts.status,
-      isOptional: parts.isOptional,
-      selectedOptionId: parts.selectedOptionId,
-      optionPrice: options.price,
-      optionCurrency: options.currency,
-    })
-    .from(parts)
-    .leftJoin(options, eq(parts.selectedOptionId, options.id))
-    .where(eq(parts.projectId, projectId));
+  const groups = await db
+    .select()
+    .from(partGroups)
+    .where(eq(partGroups.projectId, projectId));
 
   const rates = await db
     .select()
@@ -116,30 +126,36 @@ export async function calculateTotals(
   let spent = 0;
   let remaining = 0;
 
-  for (const part of projectParts) {
-    if (!part.selectedOptionId || !part.optionPrice || !part.optionCurrency) {
-      continue;
+  for (const group of groups) {
+    if (!group.selectedOptionId) continue;
+    if (!includeOptionals && group.isOptional) continue;
+
+    const optParts = await db
+      .select()
+      .from(parts)
+      .where(eq(parts.optionId, group.selectedOptionId));
+
+    if (optParts.length === 0) continue;
+
+    const groupStatus = minStatus(optParts.map((p) => p.status));
+
+    let groupTotal = 0;
+    for (const part of optParts) {
+      const rate = resolveRate(rates, part.currency, currency);
+      if (typeof rate !== 'number') {
+        return {
+          error: `Missing exchange rate: ${rate.missingPair.from} → ${rate.missingPair.to}`,
+          missingPair: rate.missingPair,
+          availableCurrencies,
+        };
+      }
+      groupTotal += parseFloat(part.price) * rate;
     }
 
-    if (!includeOptionals && part.isOptional) {
-      continue;
-    }
-
-    const rate = resolveRate(rates, part.optionCurrency, currency);
-    if (typeof rate !== 'number') {
-      return {
-        error: `Missing exchange rate: ${rate.missingPair.from} → ${rate.missingPair.to}`,
-        missingPair: rate.missingPair,
-        availableCurrencies,
-      };
-    }
-
-    const converted = parseFloat(part.optionPrice) * rate;
-
-    if (part.status === 'pending') {
-      remaining += converted;
+    if (groupStatus === 'pending') {
+      remaining += groupTotal;
     } else {
-      spent += converted;
+      spent += groupTotal;
     }
   }
 

@@ -1,17 +1,16 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DotsSixVertical, Trash } from '@phosphor-icons/react';
-import type { Part } from '@/types';
+import type { PartGroup } from '@/types';
 
 interface PartRowProps {
-  part: Part;
+  partGroup: PartGroup;
   isSelected: boolean;
-  onSelect: (part: Part) => void;
-  onStatusChange: (partId: string, status: Part['status']) => void;
-  onDelete: (part: Part) => void;
+  onSelect: (pg: PartGroup) => void;
+  onDelete: (pg: PartGroup) => void;
 }
 
-const statusStyles: Record<Part['status'], string> = {
+const statusStyles: Record<string, string> = {
   pending:
     'bg-[rgba(245,158,11,0.08)] text-amber-400 border-[rgba(245,158,11,0.2)]',
   ordered:
@@ -20,15 +19,22 @@ const statusStyles: Record<Part['status'], string> = {
     'bg-[rgba(34,197,94,0.08)] text-green-400 border-[rgba(34,197,94,0.2)]',
 };
 
-function formatPrice(price: number, currency: string) {
-  return `$${Number(price).toFixed(2)} ${currency}`;
+function formatOptionSummary(selectedOption: PartGroup['selectedOption']): string {
+  if (!selectedOption) return '';
+  const { name, computedPrice, currencies } = selectedOption;
+  if (computedPrice !== null && currencies.length === 1) {
+    return `${name} — $${computedPrice.toFixed(2)} ${currencies[0]}`;
+  }
+  if (currencies.length > 1) {
+    return `${name} — Mixed currencies`;
+  }
+  return name;
 }
 
 export function PartRow({
-  part,
+  partGroup,
   isSelected,
   onSelect,
-  onStatusChange,
   onDelete,
 }: PartRowProps) {
   const {
@@ -38,7 +44,7 @@ export function PartRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: part.id });
+  } = useSortable({ id: partGroup.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -69,34 +75,33 @@ export function PartRow({
       {/* Name — clickable to open side panel */}
       <button
         className="min-w-0 flex-1 truncate text-left text-sm font-medium text-primary"
-        onClick={() => onSelect(part)}
+        onClick={() => onSelect(partGroup)}
       >
-        {part.name}
+        {partGroup.name}
       </button>
 
-      {/* Status badge */}
-      <select
-        value={part.status}
-        onChange={(e) =>
-          onStatusChange(part.id, e.target.value as Part['status'])
-        }
-        onClick={(e) => e.stopPropagation()}
-        className={`shrink-0 cursor-pointer appearance-none rounded border px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wide outline-none ${statusStyles[part.status]}`}
-      >
-        <option value="pending">Pending</option>
-        <option value="ordered">Ordered</option>
-        <option value="owned">Owned</option>
-      </select>
+      {/* Status badge — read-only computed */}
+      {partGroup.computedStatus ? (
+        <span
+          className={`shrink-0 rounded border px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wide ${statusStyles[partGroup.computedStatus]}`}
+        >
+          {partGroup.computedStatus}
+        </span>
+      ) : (
+        <span className="shrink-0 font-mono text-[11px] text-muted">—</span>
+      )}
 
-      {/* Selected option summary — price only on mobile, full on desktop */}
-      {part.selectedOption ? (
+      {/* Selected option summary */}
+      {partGroup.selectedOption ? (
         <>
           <span className="shrink-0 truncate font-mono text-xs font-medium text-amber-500 sm:hidden">
-            {formatPrice(part.selectedOption.price, part.selectedOption.currency)}
+            {partGroup.selectedOption.computedPrice !== null && partGroup.selectedOption.currencies.length === 1
+              ? `$${partGroup.selectedOption.computedPrice.toFixed(2)} ${partGroup.selectedOption.currencies[0]}`
+              : partGroup.selectedOption.name}
           </span>
           <span className="hidden w-80 shrink-0 truncate text-right font-mono text-sm sm:block">
             <span className="font-medium text-amber-500">
-              {part.selectedOption.name} — {formatPrice(part.selectedOption.price, part.selectedOption.currency)}
+              {formatOptionSummary(partGroup.selectedOption)}
             </span>
           </span>
         </>
@@ -111,7 +116,7 @@ export function PartRow({
         className="shrink-0 text-muted transition-colors duration-150 hover:text-destructive"
         onClick={(e) => {
           e.stopPropagation();
-          onDelete(part);
+          onDelete(partGroup);
         }}
       >
         <Trash size={16} />

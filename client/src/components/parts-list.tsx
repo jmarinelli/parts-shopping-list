@@ -17,26 +17,24 @@ import { Plus, ListDashes } from '@phosphor-icons/react';
 import { PartRow } from '@/components/part-row';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
-import type { Part } from '@/types';
+import type { PartGroup } from '@/types';
 
 interface PartsListProps {
-  parts: Part[];
-  selectedPartId: string | null;
-  onSelectPart: (part: Part) => void;
-  onCreatePart: (name: string) => void;
-  onStatusChange: (partId: string, status: Part['status']) => void;
-  onDeletePart: (partId: string) => void;
+  partGroups: PartGroup[];
+  selectedPartGroupId: string | null;
+  onSelectPartGroup: (pg: PartGroup) => void;
+  onCreatePartGroup: (name: string) => void;
+  onDeletePartGroup: (id: string) => void;
   onReorder: (orderedIds: string[]) => void;
   isCreating: boolean;
 }
 
 export function PartsList({
-  parts,
-  selectedPartId,
-  onSelectPart,
-  onCreatePart,
-  onStatusChange,
-  onDeletePart,
+  partGroups,
+  selectedPartGroupId,
+  onSelectPartGroup,
+  onCreatePartGroup,
+  onDeletePartGroup,
   onReorder,
   isCreating,
 }: PartsListProps) {
@@ -44,7 +42,7 @@ export function PartsList({
   const [newName, setNewName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [deleteModal, setDeleteModal] = useState<{ open: boolean; part?: Part }>({
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; partGroup?: PartGroup }>({
     open: false,
   });
 
@@ -63,15 +61,15 @@ export function PartsList({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = parts.findIndex((p) => p.id === active.id);
-    const newIndex = parts.findIndex((p) => p.id === over.id);
+    const oldIndex = partGroups.findIndex((pg) => pg.id === active.id);
+    const newIndex = partGroups.findIndex((pg) => pg.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    const reordered = [...parts];
+    const reordered = [...partGroups];
     const [moved] = reordered.splice(oldIndex, 1);
     reordered.splice(newIndex, 0, moved);
 
-    onReorder(reordered.map((p) => p.id));
+    onReorder(reordered.map((pg) => pg.id));
   }
 
   function handleAddSubmit() {
@@ -81,7 +79,7 @@ export function PartsList({
       setNewName('');
       return;
     }
-    onCreatePart(trimmed);
+    onCreatePartGroup(trimmed);
     setNewName('');
     setIsAdding(false);
   }
@@ -96,7 +94,7 @@ export function PartsList({
     }
   }
 
-  if (parts.length === 0 && !isAdding) {
+  if (partGroups.length === 0 && !isAdding) {
     return (
       <div>
         <div className="rounded-md border border-border bg-surface px-6 py-12 text-center">
@@ -105,7 +103,7 @@ export function PartsList({
           </div>
           <p className="text-sm font-medium">No parts yet</p>
           <p className="mb-4 font-mono text-xs text-muted">
-            add your first part to start tracking
+            add your first part group to start tracking
           </p>
           <Button
             variant="primary"
@@ -145,17 +143,16 @@ export function PartsList({
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={parts.map((p) => p.id)}
+            items={partGroups.map((pg) => pg.id)}
             strategy={verticalListSortingStrategy}
           >
-            {parts.map((part) => (
+            {partGroups.map((partGroup) => (
               <PartRow
-                key={part.id}
-                part={part}
-                isSelected={part.id === selectedPartId}
-                onSelect={onSelectPart}
-                onStatusChange={onStatusChange}
-                onDelete={(part) => setDeleteModal({ open: true, part })}
+                key={partGroup.id}
+                partGroup={partGroup}
+                isSelected={partGroup.id === selectedPartGroupId}
+                onSelect={onSelectPartGroup}
+                onDelete={(pg) => setDeleteModal({ open: true, partGroup: pg })}
               />
             ))}
           </SortableContext>
@@ -172,7 +169,7 @@ export function PartsList({
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={handleAddKeyDown}
               onBlur={handleAddSubmit}
-              placeholder="Part name..."
+              placeholder="Part group name..."
               disabled={isCreating}
               className="flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted"
             />
@@ -198,8 +195,8 @@ export function PartsList({
       <Modal
         open={deleteModal.open}
         onClose={() => setDeleteModal({ open: false })}
-        title={`Delete ${deleteModal.part?.name ?? ''}?`}
-        description="This will permanently delete this part and all its options. This action cannot be undone."
+        title={`Delete ${deleteModal.partGroup?.name ?? ''}?`}
+        description="This will permanently delete this part group and all its options and parts. This action cannot be undone."
       >
         <div className="flex justify-end gap-2">
           <Button
@@ -213,8 +210,8 @@ export function PartsList({
             variant="destructive"
             size="sm"
             onClick={() => {
-              if (deleteModal.part) {
-                onDeletePart(deleteModal.part.id);
+              if (deleteModal.partGroup) {
+                onDeletePartGroup(deleteModal.partGroup.id);
                 setDeleteModal({ open: false });
               }
             }}
