@@ -1,9 +1,7 @@
-FROM node:20-alpine AS base
+FROM node:20-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
-
-FROM base AS production
 COPY . .
 RUN npm run build
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "npx drizzle-kit migrate && node dist/index.js"]
