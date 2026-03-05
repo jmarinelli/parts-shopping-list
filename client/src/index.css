@@ -1,0 +1,47 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+
+  /* Surfaces */
+  --color-bg: #0c0c0e;
+  --color-surface: #161618;
+  --color-surface-raised: #1c1c1f;
+  --color-surface-hover: #222225;
+
+  /* Borders */
+  --color-border: #2a2a2d;
+  --color-border-subtle: #222225;
+  --color-border-strong: #3a3a3d;
+
+  /* Text */
+  --color-primary: #ececef;
+  --color-secondary: #8b8b8e;
+  --color-muted: #5c5c5f;
+
+  /* Accent */
+  --color-accent: #f59e0b;
+  --color-accent-hover: #d97706;
+
+  /* Semantic */
+  --color-destructive: #ef4444;
+  --color-success: #22c55e;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.animate-skeleton {
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
+}

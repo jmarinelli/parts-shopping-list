@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design System Showcase — Shopping Lists Manager</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      /* Dark base */
+      --bg: #0c0c0e;
+      --surface: #161618;
+      --surface-raised: #1c1c1f;
+      --surface-hover: #222225;
+      --border: #2a2a2d;
+      --border-subtle: #222225;
+      --border-strong: #3a3a3d;
+
+      /* Text */
+      --text-primary: #ececef;
+      --text-secondary: #8b8b8e;
+      --text-muted: #5c5c5f;
+
+      /* Amber accent */
+      --accent: #f59e0b;
+      --accent-hover: #d97706;
+      --accent-muted: #92400e;
+      --accent-subtle: rgba(245, 158, 11, 0.08);
+      --accent-border: rgba(245, 158, 11, 0.25);
+
+      /* Status */
+      --status-pending-bg: rgba(245, 158, 11, 0.08);
+      --status-pending-text: #fbbf24;
+      --status-pending-border: rgba(245, 158, 11, 0.2);
+
+      --status-ordered-bg: rgba(59, 130, 246, 0.08);
+      --status-ordered-text: #60a5fa;
+      --status-ordered-border: rgba(59, 130, 246, 0.2);
+
+      --status-owned-bg: rgba(34, 197, 94, 0.08);
+      --status-owned-text: #4ade80;
+      --status-owned-border: rgba(34, 197, 94, 0.2);
+
+      /* Semantic */
+      --destructive: #ef4444;
+      --destructive-hover: #dc2626;
+      --warning: #f59e0b;
+      --success: #22c55e;
+      --error: #ef4444;
+    }
+
+    body {
+      font-family: 'Geist', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-family: 'Geist Mono', monospace;
+      margin-bottom: 48px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .section {
+      margin-bottom: 48px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* --- Colors --- */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+    }
+
+    .color-swatch {
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .color-swatch .swatch-block {
+      height: 56px;
+    }
+
+    .color-swatch .swatch-label {
+      padding: 8px 10px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-family: 'Geist Mono', monospace;
+    }
+
+    .color-swatch .swatch-label strong {
+      display: block;
+      color: var(--text-primary);
+      font-weight: 500;
+      font-family: 'Geist', sans-serif;
+      font-size: 12px;
+    }
+
+    /* --- Typography --- */
+    .type-row {
+      display: flex;
+      align-items: baseline;
+      gap: 24px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .type-label {
+      flex-shrink: 0;
+      width: 130px;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'Geist Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .type-page-heading { font-size: 24px; font-weight: 600; letter-spacing: -0.03em; }
+    .type-section-heading { font-size: 16px; font-weight: 500; letter-spacing: -0.01em; }
+    .type-body { font-size: 14px; color: var(--text-secondary); }
+    .type-price { font-family: 'Geist Mono', monospace; font-size: 14px; color: var(--accent); font-weight: 500; }
+    .type-small { font-size: 12px; color: var(--text-muted); font-family: 'Geist Mono', monospace; }
+
+    /* --- Buttons --- */
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      border-radius: 5px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 150ms;
+      letter-spacing: -0.01em;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0c0c0e;
+      font-weight: 600;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    .btn-secondary {
+      background: var(--surface-raised);
+      color: var(--text-primary);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+    }
+    .btn-ghost:hover { background: var(--surface-raised); color: var(--text-primary); }
+
+    .btn-destructive {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--destructive);
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+    .btn-destructive:hover { background: rgba(239, 68, 68, 0.15); }
+
+    .btn-sm {
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+
+    /* --- Badges --- */
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      font-family: 'Geist Mono', monospace;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-pending {
+      background: var(--status-pending-bg);
+      color: var(--status-pending-text);
+      border-color: var(--status-pending-border);
+    }
+
+    .badge-ordered {
+      background: var(--status-ordered-bg);
+      color: var(--status-ordered-text);
+      border-color: var(--status-ordered-border);
+    }
+
+    .badge-owned {
+      background: var(--status-owned-bg);
+      color: var(--status-owned-text);
+      border-color: var(--status-owned-border);
+    }
+
+    .badge-optional {
+      background: rgba(255,255,255,0.04);
+      color: var(--text-muted);
+      border-color: var(--border);
+    }
+
+    .badge-unquoted {
+      background: transparent;
+      color: var(--text-muted);
+      border-color: var(--border);
+      font-style: italic;
+    }
+
+    /* --- Cards --- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 18px;
+      transition: border-color 150ms, background 150ms;
+    }
+
+    .card:hover {
+      border-color: var(--border-strong);
+      background: var(--surface-raised);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 2px;
+    }
+
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'Geist Mono', monospace;
+      margin-bottom: 14px;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    /* --- Table / Parts List --- */
+    .parts-table {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      border-spacing: 0;
+    }
+
+    .parts-table th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      font-family: 'Geist Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .parts-table td {
+      padding: 11px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+
+    .parts-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .parts-table tr.selected {
+      background: var(--accent-subtle);
+    }
+
+    .parts-table tr.selected td {
+      border-bottom-color: var(--accent-border);
+    }
+
+    .drag-handle {
+      color: var(--text-muted);
+      cursor: grab;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .option-summary {
+      font-family: 'Geist Mono', monospace;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .part-name {
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    /* --- Option Card --- */
+    .option-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      margin-bottom: 8px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      transition: border-color 150ms;
+    }
+
+    .option-card:hover {
+      border-color: var(--border-strong);
+    }
+
+    .option-card.option-selected {
+      border-color: var(--accent-border);
+      background: var(--accent-subtle);
+    }
+
+    .option-radio {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border-strong);
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 150ms;
+    }
+
+    .option-radio.checked {
+      border-color: var(--accent);
+    }
+
+    .option-radio.checked::after {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+
+    .option-details { flex: 1; }
+
+    .option-name {
+      font-weight: 500;
+      font-size: 13px;
+      margin-bottom: 2px;
+      letter-spacing: -0.01em;
+    }
+
+    .option-price {
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    .option-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'Geist Mono', monospace;
+      margin-top: 4px;
+    }
+
+    .option-meta a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .option-meta a:hover {
+      color: var(--text-primary);
+      border-bottom-color: var(--text-muted);
+    }
+
+    .auto-selected-note {
+      font-size: 10px;
+      color: var(--accent);
+      font-family: 'Geist Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 6px;
+    }
+
+    /* --- Totals Banner --- */
+    .totals-banner {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+
+    .total-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .total-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+      font-family: 'Geist Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .total-value {
+      font-family: 'Geist Mono', monospace;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+    }
+
+    .total-value.spent { color: var(--status-ordered-text); }
+    .total-value.remaining { color: var(--status-pending-text); }
+
+    .totals-controls {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .select-mock {
+      padding: 5px 10px;
+      font-size: 12px;
+      font-family: 'Geist Mono', monospace;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface-raised);
+      color: var(--text-primary);
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: 'Geist Mono', monospace;
+    }
+
+    .toggle {
+      width: 34px;
+      height: 18px;
+      background: var(--accent);
+      border-radius: 9px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 18px;
+      width: 14px;
+      height: 14px;
+      background: var(--bg);
+      border-radius: 50%;
+    }
+
+    /* --- Breadcrumb --- */
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      font-family: 'Geist Mono', monospace;
+    }
+
+    .breadcrumb a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 150ms;
+    }
+
+    .breadcrumb a:hover {
+      color: var(--text-primary);
+    }
+
+    .breadcrumb .separator {
+      color: var(--border-strong);
+    }
+
+    .breadcrumb .current {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    /* --- Modal --- */
+    .modal-backdrop {
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      border-radius: 6px;
+      padding: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal {
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 24px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .modal-description {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
+      font-family: 'Geist Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 150ms;
+    }
+
+    .input-group input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.1);
+    }
+
+    .input-group input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    /* --- Skeleton --- */
+    .skeleton {
+      background: var(--surface-hover);
+      border-radius: 3px;
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .skeleton-row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    /* --- Empty State --- */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .empty-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin: 0 auto 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 18px;
+    }
+
+    .empty-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .empty-description {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      font-family: 'Geist Mono', monospace;
+    }
+
+    /* --- Warning Banner --- */
+    .warning-banner {
+      background: var(--status-pending-bg);
+      border: 1px solid var(--status-pending-border);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--status-pending-text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Geist Mono', monospace;
+    }
+
+    .warning-banner a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    /* --- Toast Mock --- */
+    .toast-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-width: 360px;
+    }
+
+    .toast {
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 13px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toast-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .toast-dot.success { background: var(--success); }
+    .toast-dot.error { background: var(--error); }
+
+    /* --- Utility --- */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .subsection-title {
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 10px;
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 768px) {
+      .two-col { grid-template-columns: 1fr; }
+      .totals-banner { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .totals-controls { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <h1>Shopping Lists Manager</h1>
+    <p class="subtitle">design system // dark industrial // amber accent</p>
+
+    <!-- Colors -->
+    <div class="section">
+      <h2 class="section-title">Colors</h2>
+
+      <p class="subsection-title">Surfaces</p>
+      <div class="color-grid" style="margin-bottom:16px">
+        <div class="color-swatch"><div class="swatch-block" style="background:var(--bg)"></div><div class="swatch-label"><strong>Background</strong>#0c0c0e</div></div>
+        <div class="color-swatch"><div class="swatch-block" style="background:var(--surface)"></div><div class="swatch-label"><strong>Surface</strong>#161618</div></div>
+        <div class="color-swatch"><div class="swatch-block" style="background:var(--surface-raised)"></div><div class="swatch-label"><strong>Raised</strong>#1c1c1f</div></div>
+        <div class="color-swatch"><div class="swatch-block" style="background:var(--border)"></div><div class="swatch-label"><strong>Border</strong>#2a2a2d</div></div>
+        <div class="color-swatch"><div class="swatch-block" style="background:var(--text-muted);"></div><div class="swatch-label"><strong>Muted</strong>#5c5c5f</div></div>
+      </div>
+
+      <p class="subsection-title">Accent + Status</p>
+      <div class="color-grid">
+        <div class="color-swatch"><div class="swatch-block" style="background:var(--accent)"></div><div class="swatch-label"><strong>Amber</strong>accent</div></div>
+        <div class="color-swatch"><div class="swatch-block" style="background:#fbbf24; border-bottom:3px solid #92400e"></div><div class="swatch-label"><strong>Pending</strong>amber</div></div>
+        <div class="color-swatch"><div class="swatch-block" style="background:#60a5fa; border-bottom:3px solid #1e40af"></div><div class="swatch-label"><strong>Ordered</strong>blue</div></div>
+        <div class="color-swatch"><div class="swatch-block" style="background:#4ade80; border-bottom:3px solid #166534"></div><div class="swatch-label"><strong>Owned</strong>green</div></div>
+        <div class="color-swatch"><div class="swatch-block" style="background:#ef4444; border-bottom:3px solid #7f1d1d"></div><div class="swatch-label"><strong>Destructive</strong>red</div></div>
+      </div>
+    </div>
+
+    <!-- Typography -->
+    <div class="section">
+      <h2 class="section-title">Typography</h2>
+      <div class="type-row"><span class="type-label">page heading</span><span class="type-page-heading">Cooling System Overhaul</span></div>
+      <div class="type-row"><span class="type-label">section</span><span class="type-section-heading">Parts List</span></div>
+      <div class="type-row"><span class="type-label">body</span><span class="type-body">Track parts, compare sourcing options, and monitor spending.</span></div>
+      <div class="type-row"><span class="type-label">price (mono)</span><span class="type-price">USD 1,247.50</span></div>
+      <div class="type-row"><span class="type-label">helper (mono)</span><span class="type-small">last updated 2 minutes ago</span></div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="section">
+      <h2 class="section-title">Buttons</h2>
+      <div class="button-row" style="margin-bottom:10px">
+        <button class="btn btn-primary">Add Car</button>
+        <button class="btn btn-secondary">Cancel</button>
+        <button class="btn btn-ghost">Edit</button>
+        <button class="btn btn-destructive">Delete</button>
+      </div>
+      <div class="button-row">
+        <button class="btn btn-primary btn-sm">Add Part</button>
+        <button class="btn btn-secondary btn-sm">Cancel</button>
+        <button class="btn btn-ghost btn-sm">Edit</button>
+      </div>
+    </div>
+
+    <!-- Badges -->
+    <div class="section">
+      <h2 class="section-title">Badges</h2>
+      <div class="badge-row">
+        <span class="badge badge-pending">pending</span>
+        <span class="badge badge-ordered">ordered</span>
+        <span class="badge badge-owned">owned</span>
+        <span class="badge badge-optional">optional</span>
+        <span class="badge badge-unquoted">unquoted</span>
+      </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    <div class="section">
+      <h2 class="section-title">Breadcrumb</h2>
+      <nav class="breadcrumb">
+        <a href="#">home</a>
+        <span class="separator">/</span>
+        <a href="#">BMW E36 328i</a>
+        <span class="separator">/</span>
+        <span class="current">Cooling System Overhaul</span>
+      </nav>
+    </div>
+
+    <!-- Totals Banner -->
+    <div class="section">
+      <h2 class="section-title">Totals Banner</h2>
+      <div class="totals-banner">
+        <div class="total-item">
+          <span class="total-label">Total</span>
+          <span class="total-value">USD 1,247.50</span>
+        </div>
+        <div class="total-item">
+          <span class="total-label">Spent</span>
+          <span class="total-value spent">USD 832.00</span>
+        </div>
+        <div class="total-item">
+          <span class="total-label">Remaining</span>
+          <span class="total-value remaining">USD 415.50</span>
+        </div>
+        <div class="totals-controls">
+          <select class="select-mock">
+            <option>USD</option>
+            <option>ARS</option>
+          </select>
+          <div class="toggle-row">
+            <div class="toggle"></div>
+            <span>optionals</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Car Cards -->
+    <div class="section">
+      <h2 class="section-title">Car Cards</h2>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">BMW E36 328i</div>
+          <div class="card-subtitle">3 projects</div>
+          <div class="card-actions">
+            <button class="btn btn-ghost btn-sm">Edit</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--destructive)">Delete</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Honda Civic EG6</div>
+          <div class="card-subtitle">1 project</div>
+          <div class="card-actions">
+            <button class="btn btn-ghost btn-sm">Edit</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--destructive)">Delete</button>
+          </div>
+        </div>
+        <div class="card" style="border-style:dashed; display:flex; align-items:center; justify-content:center; color:var(--text-muted); cursor:pointer; font-family:'Geist Mono',monospace; font-size:13px;">
+          + add car
+        </div>
+      </div>
+    </div>
+
+    <!-- Parts List Table -->
+    <div class="section">
+      <h2 class="section-title">Parts List</h2>
+      <table class="parts-table">
+        <thead>
+          <tr>
+            <th style="width:36px"></th>
+            <th>Part</th>
+            <th style="width:90px">Status</th>
+            <th style="width:80px"></th>
+            <th>Selected Option</th>
+            <th style="width:50px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="selected">
+            <td><span class="drag-handle">&#x2630;</span></td>
+            <td><span class="part-name">Radiator</span></td>
+            <td><span class="badge badge-ordered">ordered</span></td>
+            <td></td>
+            <td><span class="option-summary">Mishimoto &mdash; USD 249.99</span></td>
+            <td><button class="btn btn-ghost btn-sm" style="color:var(--text-muted)">&#x2715;</button></td>
+          </tr>
+          <tr>
+            <td><span class="drag-handle">&#x2630;</span></td>
+            <td><span class="part-name">Water Pump</span></td>
+            <td><span class="badge badge-pending">pending</span></td>
+            <td></td>
+            <td><span class="option-summary">OEM BMW &mdash; USD 187.00</span></td>
+            <td><button class="btn btn-ghost btn-sm" style="color:var(--text-muted)">&#x2715;</button></td>
+          </tr>
+          <tr>
+            <td><span class="drag-handle">&#x2630;</span></td>
+            <td><span class="part-name">Thermostat</span></td>
+            <td><span class="badge badge-owned">owned</span></td>
+            <td></td>
+            <td><span class="option-summary">Wahler &mdash; USD 32.50</span></td>
+            <td><button class="btn btn-ghost btn-sm" style="color:var(--text-muted)">&#x2715;</button></td>
+          </tr>
+          <tr>
+            <td><span class="drag-handle">&#x2630;</span></td>
+            <td><span class="part-name">Expansion Tank</span></td>
+            <td><span class="badge badge-pending">pending</span></td>
+            <td><span class="badge badge-optional">optional</span></td>
+            <td><span class="badge badge-unquoted">unquoted</span></td>
+            <td><button class="btn btn-ghost btn-sm" style="color:var(--text-muted)">&#x2715;</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Option Cards -->
+    <div class="section">
+      <h2 class="section-title">Option Cards // Side Panel</h2>
+      <div style="max-width:400px">
+        <div class="option-card option-selected">
+          <div class="option-radio checked"></div>
+          <div class="option-details">
+            <div class="option-name">Mishimoto MMRAD-E36-92</div>
+            <div class="option-price">USD 249.99</div>
+            <div class="option-meta">FCP Euro // <a href="#">view listing</a></div>
+            <div class="option-meta" style="margin-top:2px; color:var(--text-muted)">Full aluminum, direct fit replacement</div>
+          </div>
+        </div>
+        <div class="option-card">
+          <div class="option-radio"></div>
+          <div class="option-details">
+            <div class="option-name">OEM Behr</div>
+            <div class="option-price">USD 189.00</div>
+            <div class="option-meta">ECS Tuning // <a href="#">view listing</a></div>
+            <div class="option-meta" style="margin-top:2px; color:var(--text-muted)">OEM replacement, plastic end tanks</div>
+          </div>
+        </div>
+        <div class="option-card">
+          <div class="option-radio"></div>
+          <div class="option-details">
+            <div class="option-name">Local radiator shop</div>
+            <div class="option-price">ARS 85,000.00</div>
+            <div class="option-meta">MercadoLibre // <a href="#">view listing</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal + Toast -->
+    <div class="section">
+      <h2 class="section-title">Modal + Toasts</h2>
+      <div class="two-col">
+        <div class="modal-backdrop">
+          <div class="modal">
+            <div class="modal-title">Add Car</div>
+            <div class="modal-description">Enter the name or description of your vehicle.</div>
+            <div class="input-group">
+              <label>Name</label>
+              <input type="text" placeholder="e.g. BMW E36 328i" value="BMW E36 328i">
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-secondary btn-sm">Cancel</button>
+              <button class="btn btn-primary btn-sm">Save</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="subsection-title">Notifications</p>
+          <div class="toast-stack">
+            <div class="toast"><span class="toast-dot success"></span>Car created successfully</div>
+            <div class="toast"><span class="toast-dot success"></span>Part status updated to "ordered"</div>
+            <div class="toast"><span class="toast-dot error"></span>Failed to delete option</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warning -->
+    <div class="section">
+      <h2 class="section-title">Warning Banner</h2>
+      <div class="warning-banner">
+        &#x26A0; Missing exchange rate: USD to ARS. <a href="#">Configure rates</a>
+      </div>
+    </div>
+
+    <!-- States -->
+    <div class="section">
+      <h2 class="section-title">States</h2>
+      <div class="two-col">
+        <div>
+          <p class="subsection-title">Loading (skeleton)</p>
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden">
+            <div class="skeleton-row">
+              <div class="skeleton" style="width:18px; height:14px"></div>
+              <div class="skeleton" style="width:130px; height:14px"></div>
+              <div class="skeleton" style="width:60px; height:20px; border-radius:4px"></div>
+              <div style="flex:1"></div>
+              <div class="skeleton" style="width:110px; height:14px"></div>
+            </div>
+            <div class="skeleton-row">
+              <div class="skeleton" style="width:18px; height:14px"></div>
+              <div class="skeleton" style="width:100px; height:14px"></div>
+              <div class="skeleton" style="width:60px; height:20px; border-radius:4px"></div>
+              <div style="flex:1"></div>
+              <div class="skeleton" style="width:90px; height:14px"></div>
+            </div>
+            <div class="skeleton-row" style="border:none">
+              <div class="skeleton" style="width:18px; height:14px"></div>
+              <div class="skeleton" style="width:150px; height:14px"></div>
+              <div class="skeleton" style="width:60px; height:20px; border-radius:4px"></div>
+              <div style="flex:1"></div>
+              <div class="skeleton" style="width:120px; height:14px"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="subsection-title">Empty state</p>
+          <div class="empty-state">
+            <div class="empty-icon">&#x2699;</div>
+            <div class="empty-title">No parts yet</div>
+            <div class="empty-description">add your first part to start tracking</div>
+            <button class="btn btn-primary btn-sm">Add Part</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Delete -->
+    <div class="section">
+      <h2 class="section-title">Confirm Delete</h2>
+      <div class="modal-backdrop" style="max-width:480px">
+        <div class="modal">
+          <div class="modal-title">Delete BMW E36 328i?</div>
+          <div class="modal-description">This will permanently delete this car and all its projects, parts, and options. This action cannot be undone.</div>
+          <div class="modal-actions">
+            <button class="btn btn-secondary btn-sm">Cancel</button>
+            <button class="btn btn-destructive btn-sm">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
